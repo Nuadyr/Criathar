@@ -6,14 +6,17 @@
         <title>Criathar: lint JavaScript in your browser</title>
 
         <!--
-            Lok boilerplate by Nuadyr. Single file, no build step, no dependencies.
+            Aengus boilerplate by Nuadyr. Single file, no build step, no dependencies.
 
             RULES THIS KIT FOLLOWS
-            - Dark mode follows the system setting (light-dark() tokens). The Theme button adds a manual override.
+            - Dark mode follows the system setting (light-dark() tokens). Motion follows the reduced motion setting.
             - Text pairs are 7:1 or better, control edges 3:1 or better. Re-check any colour you change.
             - Colour never carries meaning alone: every status has its own icon shape and a word.
             - Touch targets are at least 2.75rem. Everything works with the keyboard and with reduced motion.
-            - No manifest and no service worker on purpose. Add them only if a project truly needs offline use.
+            - Use only the HTML elements your page needs. The kit styles many elements, but no page has to use them all.
+            Styles for an element that is not on the page do nothing, so you can leave them or delete them.
+            - No manifest and no service worker by default. The head has commented-out manifest and icon links: add them only if a project truly needs them.
+            - Motion that is not essential runs only inside @media (prefers-reduced-motion: no-preference).
         -->
 
         <meta name="description" content="Criathar runs ESLint in your browser with acorn as the parser, so you can check JavaScript without installing anything.">
@@ -21,6 +24,7 @@
         <meta name="application-name" content="Criathar">
         <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
         <meta name="color-scheme" content="light dark">
+        <!-- eslint-disable @html-eslint/use-baseline -- Kept on purpose: browsers without theme-color ignore it. -->
         <meta
             name="theme-color"
             content="#f5f6f7"
@@ -31,12 +35,17 @@
             content="#111213"
             media="(prefers-color-scheme: dark)"
         >
+        <!-- eslint-enable @html-eslint/use-baseline -->
         <link rel="canonical" href="https://nuadyr.github.io/Criathar/">
         <link
             rel="icon"
             type="image/svg+xml"
             href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231a1a1d'/%3E%3Cpath d='M8 24V8l8 9 8-9v16' fill='none' stroke='%239999cc' stroke-width='3' stroke-linejoin='round'/%3E%3C/svg%3E"
         >
+        <!-- OPTIONAL: installable app links. Uncomment only if the project ships these files.
+            <link rel="manifest" href="manifest.webmanifest">
+            <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+        -->
         <meta property="og:type" content="website">
         <meta property="og:site_name" content="Criathar">
         <meta property="og:title" content="Criathar: lint JavaScript in your browser">
@@ -62,14 +71,14 @@
 }
         </script>
         <script>
-/* Apply a saved theme before first paint so there is no flash. */
-try { const t = localStorage.getItem('kit-theme'); if (t === 'light' || t === 'dark') {document.documentElement.dataset.theme = t;} } catch { /* storage unavailable */ }
+/* Removes the retired manual theme and motion settings that older copies of this kit saved. Safe to delete once old saves are gone. */
+try { ['kit-theme', 'kit-theme-mode', 'kit-motion-paused'].forEach((k) => localStorage.removeItem(k)); } catch { /* storage unavailable */ }
         </script>
         <style>
-/*  design system.
+/* Aengus design system.
    Layers: 1 tokens, 2 base, 3 layout, 4 components, 5 your page, 6 user preferences and assistive modes. */
 
-/* 1. Tokens. light-dark(light value, dark value) follows the system; data-theme forces one side.
+/* 1. Tokens. light-dark(light value, dark value) follows the system setting.
    1a primitives (Nuadyr Black Steel and Periwinkle), 1b semantic roles, 1c LOCKED status colours.
    The UI is monochrome on purpose: the only strong colours on a page are the status messages. */
 
@@ -110,6 +119,7 @@ try { const t = localStorage.getItem('kit-theme'); if (t === 'light' || t === 'd
 
   --font-body: "Atkinson Hyperlegible Next", "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-head: "Fraunces", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --font-mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
 
   --paper:         light-dark(var(--Nuadyr-color-steel-100), var(--Nuadyr-color-steel-950));
   --surface:       light-dark(var(--Nuadyr-color-white), var(--Nuadyr-color-steel-900));
@@ -137,6 +147,9 @@ try { const t = localStorage.getItem('kit-theme'); if (t === 'light' || t === 'd
 
   --chart:         light-dark(var(--Nuadyr-color-periwinkle-700), var(--Nuadyr-color-periwinkle-400));
   --chart-line: var(--ink);
+
+  --mark:          light-dark(var(--Nuadyr-color-periwinkle-50), var(--Nuadyr-color-periwinkle-800));
+  --scrim:         rgba(17, 18, 19, 0.72);
 
   --s-1: 0.25rem; --s-2: 0.5rem; --s-3: 0.75rem; --s-4: 1rem; --s-5: 1.5rem; --s-6: 2rem; --s-7: 3rem; --s-8: 4rem;
   --r-1: 0.25rem; --r-2: 0.5rem; --r-3: 0.875rem;
@@ -167,8 +180,6 @@ try { const t = localStorage.getItem('kit-theme'); if (t === 'light' || t === 'd
   --problem-ink: light-dark(#7a0f1f, #FF3333E6); --problem-mark: light-dark(#c0262d, #FF3333); --problem-tint: light-dark(#fbe4e7, #330000);
   --info-ink:    light-dark(#0f3f7a, #a9cdf5); --info-mark:    light-dark(#1f66b0, #55aff0); --info-tint:    light-dark(#e1ecf8, #052136);
 }
-:root[data-theme="light"] { color-scheme: light; }
-:root[data-theme="dark"]  { color-scheme: dark; }
 
 /* 2. Base */
 *, *::before, *::after { box-sizing: border-box; }
@@ -189,7 +200,7 @@ p, ul, ol, dl { margin: 0; }
 p + p { margin-block-start: var(--s-3); }
 a { color: var(--link); text-decoration-thickness: 0.09em; text-underline-offset: 0.18em; }
 a:hover { text-decoration-thickness: 0.18em; }
-code { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 0.9em; background: var(--surface-2); padding: 0 0.25em; border-radius: var(--r-1); }
+code { font-family: var(--font-mono); font-size: 0.9em; background: var(--surface-2); padding: 0 0.25em; border-radius: var(--r-1); }
 img, svg { max-inline-size: 100%; }
 [hidden] { display: none !important; }
 
@@ -237,7 +248,7 @@ button.small { padding: var(--s-1) var(--s-3); font-size: var(--t-sm); }
 .field { display: grid; gap: var(--s-1); }
 .field > label, legend { font-weight: 700; }
 fieldset { margin: 0; padding: 0; border: 0; min-inline-size: 0; }
-input[type="text"], input[type="search"], input[type="number"], input[type="email"], input[type="url"], select, textarea {
+input[type="text"], input[type="search"], input[type="number"], input[type="email"], input[type="url"], input[type="tel"], input[type="password"], input[type="date"], input[type="time"], select, textarea {
   inline-size: 100%; min-block-size: var(--target); padding: var(--s-2) var(--s-3);
   font: inherit; color: var(--ink); background: var(--surface); border: var(--rule) solid var(--line); border-radius: var(--r-2);
 }
@@ -245,7 +256,6 @@ textarea { min-block-size: 10rem; resize: vertical; font-size: var(--t-sm); line
 input[type="file"] { max-inline-size: 100%; min-block-size: var(--target); font: inherit; }
 .hint { color: var(--ink-soft); font-size: var(--t-sm); }
 .field .hint { margin: 0; }
-#magic-options { min-block-size: 6rem; }
 .checkline { display: flex; align-items: center; gap: var(--s-3); min-block-size: var(--target); }
 .checkline input { inline-size: 1.5rem; block-size: 1.5rem; margin: 0; flex: none; accent-color: var(--action); }
 
@@ -301,7 +311,7 @@ caption { text-align: start; font-weight: 700; padding: var(--s-2) var(--s-3); }
 th, td { text-align: start; padding: var(--s-2) var(--s-3); vertical-align: top; }
 thead th { background: var(--surface-2); border-block-end: var(--rule) solid var(--line); white-space: nowrap; }
 tbody th, tbody td { border-block-end: 1px solid var(--line-soft); }
-td.num { text-align: end; }
+th.num, td.num { text-align: end; }
 
 /* Numbered result cards, stat tiles, fact lists, chips */
 .cards { display: grid; gap: var(--s-5); counter-reset: card; }
@@ -320,25 +330,168 @@ td.num { text-align: end; }
 .chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr)); gap: var(--s-2); }
 .chip { display: flex; align-items: center; min-inline-size: 0; min-block-size: 1.75rem; padding: var(--s-1) var(--s-3); background: var(--surface); border: var(--rule) solid var(--line); border-radius: var(--r-2); font-size: var(--t-sm); overflow-wrap: anywhere; }
 
+/* Content elements: text, lists, quotes, code, media, dialog. Wrap long-form text in .prose.
+   Use only the elements your page needs. A rule for an element you never use is harmless: leave it or delete it. */
+.prose { max-inline-size: var(--text-measure); }
+.prose :is(ul, ol) { padding-inline-start: var(--s-5); }
+.prose :is(ul, ol) > li + li, .prose :is(ul, ol) :is(ul, ol) { margin-block-start: var(--s-1); }
+menu { display: flex; flex-wrap: wrap; gap: var(--s-2); margin: 0; padding: 0; list-style: none; }
+dt { font-weight: 700; }
+dd { margin-inline: 0; padding-inline-start: var(--s-4); }
+dd + dt { margin-block-start: var(--s-3); }
+blockquote { margin: 0; padding-inline-start: var(--s-4); border-inline-start: 0.25rem solid var(--line); }
+figure { margin: 0; }
+figcaption { margin-block-start: var(--s-2); color: var(--ink-soft); font-size: var(--t-sm); }
+img { block-size: auto; border-radius: var(--r-2); }
+cite, var { font-style: italic; }
+address { font-style: normal; }
+abbr[title] { text-decoration: underline dotted; text-underline-offset: 0.18em; }
+mark { padding-inline: 0.2em; color: var(--ink); background: var(--mark); border-radius: var(--r-1); }
+kbd, samp { font-family: var(--font-mono); font-size: 0.9em; }
+kbd { padding: 0.05em 0.4em; background: var(--surface); border: 1px solid var(--line); border-block-end-width: 0.2em; border-radius: var(--r-1); white-space: nowrap; }
+samp { padding: 0 0.25em; background: var(--surface-2); border-radius: var(--r-1); }
+sub, sup { font-size: 0.75em; line-height: 0; }
+small { font-size: var(--t-sm); }
+ins { text-decoration-style: double; }
+/* Edits are announced to screen readers with hidden start and end labels, so they do not rely on the line style alone. */
+ins::before, ins::after, del::before, del::after { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+ins::before { content: " [inserted text start] "; } ins::after { content: " [inserted text end] "; }
+del::before { content: " [deleted text start] "; } del::after { content: " [deleted text end] "; }
+pre { margin: 0; padding: var(--s-3) var(--s-4); overflow-x: auto; font-family: var(--font-mono); font-size: var(--t-sm); line-height: 1.5; tab-size: 2; color: var(--ink); background: var(--surface-2); border: var(--rule) solid var(--line-soft); border-radius: var(--r-2); }
+pre code { padding: 0; font-size: inherit; background: none; }
+pre:focus-visible { outline-offset: 0; }
+hr { block-size: 0; margin: 0; border: 0; border-block-start: var(--rule) solid var(--line-soft); }
+
+/* Navigation lists (in-page links, breadcrumbs), search, sample boxes, canvas, dialog */
+search { display: block; }
+.navlist { display: flex; flex-wrap: wrap; gap: 0 var(--s-4); margin: 0; padding: 0; list-style: none; }
+.navlist a { display: inline-flex; align-items: center; min-block-size: var(--target); }
+.navlist--crumbs li + li::before { content: "/"; content: "/" / ""; margin-inline-end: var(--s-4); color: var(--ink-soft); }
+.sample { padding: var(--s-4); background: var(--surface-2); border: var(--rule) solid var(--line-soft); border-radius: var(--r-2); }
+.sample .sample { background: var(--surface); }
+canvas { display: block; inline-size: 100%; max-inline-size: var(--text-measure); block-size: auto; color: var(--chart); background: var(--surface); border: var(--rule) solid var(--line); border-radius: var(--r-2); }
+dialog { inline-size: min(calc(100% - 2rem), 32rem); max-block-size: calc(100% - 2rem); padding: 0; color: var(--ink); background: var(--surface); border: var(--rule) solid var(--line); border-radius: var(--r-3); }
+dialog::backdrop { background: var(--scrim); }
+.dialog__body { padding: var(--s-5); }
+/* Scroll lock. While a dialog or popover is open, the page behind it cannot scroll.
+   The scrollbar space stays reserved so the layout does not jump, and scrolling inside the dialog never carries on to the page.
+   Each selector has its own rule so a browser that lacks one of them still applies the others. */
+html:has(dialog[open]) { overflow: hidden; scrollbar-gutter: stable; }
+html:has(.pop.is-open) { overflow: hidden; scrollbar-gutter: stable; }
+html:has(.pop:popover-open) { overflow: hidden; scrollbar-gutter: stable; }
+dialog, .pop { overscroll-behavior: contain; }
+/* Title on the left, close button on the right. Wraps on a narrow screen. */
+.dlg-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--s-3); }
+.dlg-head > :is(h2, h3, h4) { flex: 1 1 12rem; min-inline-size: 0; margin: 0; }
+
+/* Table extras and form extras */
+tfoot th, tfoot td { font-weight: 700; background: var(--surface-2); border-block-start: var(--rule) solid var(--line); }
+col.col-wide { inline-size: 50%; }
+fieldset > legend { padding: 0; margin-block-end: var(--s-1); }
+input[type="color"] { inline-size: 4.5rem; min-block-size: var(--target); padding: var(--s-1); cursor: pointer; background: var(--surface); border: var(--rule) solid var(--line); border-radius: var(--r-2); }
+input[type="range"] { inline-size: 100%; max-inline-size: var(--text-measure); min-block-size: var(--target); margin: 0; accent-color: var(--action); }
+::placeholder { color: var(--ink-soft); opacity: 1; }
+:is(input, select, textarea):disabled { cursor: not-allowed; color: var(--ink-soft); background: var(--surface-2); border-style: dashed; }
+output { font-weight: 700; font-variant-numeric: tabular-nums; }
+
 /* Meter and bar chart (draw with inline SVG or HTML and these tokens) */
 .meter { inline-size: 100%; max-inline-size: var(--text-measure); block-size: 1rem; accent-color: var(--chart); }
 .chart text { fill: var(--ink); font-family: var(--font-body); font-size: 0.75rem; }
 .chart__axis { stroke: var(--line); stroke-width: 1; }
 .chart__bar { fill: var(--chart); stroke: var(--chart-line); stroke-width: 1; }
 
+/* Main navigation: a rounded track of pills. Each pill has an icon and a word. The current pill is filled, underlined and marked with aria-current,
+   so colour is never the only cue. Narrow screens show three pills per row with the icon above the word; wide screens show one row.
+   Set the number of pills with style="--tab-count: 4" on the list. Give each link a data-v and map it to an icon below.
+   If you use initViews(), data-v must match the view id. */
+:root {
+  --mask-nav-list: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2.8' y='4' width='3.8' height='16' rx='1'/%3E%3Crect x='8.6' y='4' width='3.8' height='16' rx='1'/%3E%3Cpath d='M14.8 6.4l3.4-.9 3.9 14.3-3.4.9z'/%3E%3C/svg%3E");
+  --mask-nav-saved: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 3.8h10v16.4l-5-3.6-5 3.6z'/%3E%3C/svg%3E");
+  --mask-nav-add: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 5v14M5 12h14'/%3E%3C/svg%3E");
+  --mask-nav-tags: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.8 12.4V4.8h7.6l8.8 8.8-7.6 7.6z'/%3E%3Cpath d='M8 8.4v.2'/%3E%3C/svg%3E");
+  --mask-nav-block: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='8.2'/%3E%3Cpath d='M6.2 6.2l11.6 11.6'/%3E%3C/svg%3E");
+  --mask-nav-find: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='10.5' cy='10.5' r='6.2'/%3E%3Cpath d='m15.2 15.2 5 5'/%3E%3C/svg%3E");
+}
+.tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-1); list-style: none; margin: 0; padding: var(--s-1); background: var(--surface-2); border: var(--rule) solid var(--line-soft); border-radius: 1.5rem; }
+.tabs li { display: flex; min-inline-size: 0; }
+.tabs a { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; gap: 0.125rem; min-block-size: 3.5rem; padding: var(--s-2); font-size: var(--t-sm); font-weight: 700; line-height: 1.2; text-align: center; text-decoration: none; color: var(--ink-soft); background: transparent; border: var(--rule) solid transparent; border-radius: 1.25rem; }
+.tabs a::before { content: ""; inline-size: 1.5rem; block-size: 1.5rem; flex: none; background: currentColor; mask: var(--nav-icon) center / contain no-repeat; -webkit-mask: var(--nav-icon) center / contain no-repeat; }
+.tabs a[data-v="list"] { --nav-icon: var(--mask-nav-list); }
+.tabs a[data-v="saved"] { --nav-icon: var(--mask-nav-saved); }
+.tabs a[data-v="add"] { --nav-icon: var(--mask-nav-add); }
+.tabs a[data-v="tags"] { --nav-icon: var(--mask-nav-tags); }
+.tabs a[data-v="block"] { --nav-icon: var(--mask-nav-block); }
+.tabs a[data-v="find"] { --nav-icon: var(--mask-nav-find); }
+.tabs a:hover { color: var(--ink); background: var(--surface); }
+.tabs a[aria-current="page"] { color: var(--on-action); background: var(--action); text-decoration: underline; text-decoration-thickness: 0.125rem; text-underline-offset: 0.25em; }
+.tabs a[aria-current="page"]:hover { background: var(--action-hover); }
+@media (prefers-reduced-motion: no-preference) { .tabs a { transition: background-color 0.18s ease, color 0.18s ease; } }
+@media (width >= 56rem) {
+  .tabs { grid-template-columns: repeat(var(--tab-count, 6), auto); inline-size: fit-content; }
+  .tabs a { flex-direction: row; gap: var(--s-2); min-block-size: var(--target); padding-inline: var(--s-4); font-size: var(--t-base); }
+}
+
+/* Panel extras: readable line length, a divided sub-section, empty lists hidden, list resets for cards */
+.panel > p, .panel .field { max-inline-size: var(--text-measure); }
+.panel > .sub { padding-block-start: var(--s-5); border-block-start: var(--rule) solid var(--line-soft); }
+.panel ul:empty, .panel ol:empty { display: none; }
+.panel nav .row { gap: var(--s-3) var(--s-4); }
+ul.cards, ol.cards { list-style: none; padding: 0; }
+/* Card titles that hold a link or button. The number badge gets an edge so it stays visible in dark mode, where it matches the card. */
+.card > h3 { align-items: flex-start; }
+.card > h3::before { border: var(--rule) solid var(--line); }
+.card > h3 .linklike { min-inline-size: 0; overflow-wrap: anywhere; font: inherit; line-height: 1.25; color: var(--link); text-align: start; padding-inline: 0; }
+
+/* Action buttons: equal-width buttons share one row where they fit and wrap together where they do not.
+   Keep the visible text short. Put the full name in aria-label, starting with the visible text. */
+.acts { display: grid; grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr)); gap: var(--s-2); inline-size: 100%; }
+.acts button { inline-size: 100%; padding: var(--s-2); font-size: var(--t-sm); line-height: 1.25; }
+.acts .badge { grid-column: 1 / -1; justify-self: start; }
+
+/* Row list: a name on the left and its controls beside it. Wraps on a narrow screen. */
+.tags { display: grid; gap: var(--s-3); list-style: none; padding: 0; }
+.tagrow { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3) var(--s-4); padding: var(--s-3) var(--s-4); background: var(--surface-2); border: var(--rule) solid var(--line-soft); border-radius: var(--r-2); }
+.tagrow__name { flex: 1 1 10rem; min-inline-size: 0; font: 600 var(--t-md) / 1.2 var(--font-head); }
+.tagrow .field { grid-auto-flow: column; align-items: center; gap: var(--s-2); inline-size: auto; }
+.tagrow select { inline-size: auto; }
+
+/* Popover card: a small panel opened by a button with popovertarget. Closes on Escape or a tap outside.
+   Browsers without the popover API use the .is-open class, which bindPopoverFallback() sets. */
+.pop, .card > .pop { margin: auto; inline-size: min(92vw, 28rem); max-block-size: 80vh; overflow: auto; padding: var(--s-5); color: var(--ink); background: var(--surface); border: var(--rule) solid var(--line); border-radius: var(--r-3); }
+.pop::backdrop { background: var(--scrim); }
+.pop > * { margin: 0; }
+.pop > * + * { margin-block-start: var(--s-3); }
+@supports not selector(:popover-open) {
+  .pop { display: none; }
+  .pop.is-open { display: block; position: fixed; inset: 0; block-size: fit-content; z-index: 20; }
+}
+
 /* Footer */
 .site-footer { background: var(--brand); color: var(--on-brand); padding-block: var(--s-5); }
 .site-footer a { color: var(--on-brand); }
 .site-footer .hint { color: var(--on-brand-soft); }
 
-/* 5. Your page. */
-.code { min-block-size: 18rem; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: var(--t-sm); white-space: pre-wrap; overflow-wrap: anywhere; tab-size: 2; }
+/* 5. Your page. Add project styles here. */
+.code { min-block-size: 18rem; font-family: var(--font-mono); font-size: var(--t-sm); white-space: pre-wrap; overflow-wrap: anywhere; tab-size: 2; }
 .table-scroll { max-block-size: 28rem; overflow-y: auto; }
 td, th[scope="row"] { overflow-wrap: anywhere; }
 td button.linklike { white-space: nowrap; }
-td select { min-inline-size: 7rem; }
-.rules td:nth-child(2) { min-inline-size: 14rem; }
 .badge { white-space: nowrap; }
+/* Main navigation tabs: icons for this page's views. */
+:root {
+  --mask-nav-code: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m8 7-5 5 5 5M16 7l5 5-5 5M13.5 5l-3 14'/%3E%3C/svg%3E");
+  --mask-nav-settings: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 7h8M18 7h2M4 17h2M12 17h8'/%3E%3Ccircle cx='15' cy='7' r='3'/%3E%3Ccircle cx='9' cy='17' r='3'/%3E%3C/svg%3E");
+  --mask-nav-about: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='8.2'/%3E%3Cpath d='M12 11v5M12 7.6v.2'/%3E%3C/svg%3E");
+}
+.tabs a[data-v="code"] { --nav-icon: var(--mask-nav-code); }
+.tabs a[data-v="results"] { --nav-icon: var(--mask-nav-list); }
+.tabs a[data-v="settings"] { --nav-icon: var(--mask-nav-settings); }
+.tabs a[data-v="about"] { --nav-icon: var(--mask-nav-about); }
+/* Four tabs: two per row on a narrow screen instead of three and one. */
+@media (width < 56rem) { .tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* Rule rows: name, what it checks, then the level. */
+.tagrow__name { overflow-wrap: anywhere; }
+.tagrow__desc { flex: 3 1 16rem; min-inline-size: 0; overflow-wrap: anywhere; color: var(--ink-soft); font-size: var(--t-sm); }
 /* Narrow screens: show each problem as a stacked block so nothing is squeezed or cut off. */
 @media (width < 40rem) {
   #result-table { overflow-x: visible; max-block-size: none; }
@@ -355,12 +508,14 @@ td select { min-inline-size: 7rem; }
 
 /* 6. User preferences and assistive modes */
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
-html[data-motion="paused"] *, html[data-motion="paused"] *::before, html[data-motion="paused"] *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 @media (forced-colors: active) {
   /* Mask icons are painted with background-color, which forced colours overrides: pin them to system ink. */
   .note::before, [role="alert"]:not([hidden])::before, .badge::before, summary::before { forced-color-adjust: none; background-color: CanvasText; }
   .card > h3::before { border: var(--rule) solid CanvasText; }
   .card, .stat, .chip, .panel { border-color: CanvasText; }
+  .tabs, .tabs a, .tagrow, dialog, .pop { border-color: CanvasText; }
+  .tabs a::before { forced-color-adjust: none; background-color: CanvasText; }
+  .tabs a[aria-current="page"] { border-color: Highlight; text-decoration: underline; }
   .chart text { fill: CanvasText; }
   .chart__axis, .chart__bar { stroke: CanvasText; }
   .chart__bar { forced-color-adjust: none; fill: Highlight; }
@@ -380,20 +535,24 @@ html[data-motion="paused"] *, html[data-motion="paused"] *::before, html[data-mo
             <header class="site-header">
                 <h1>Criathar</h1>
                 <p class="lede">Check JavaScript with ESLint in your browser. The code is read by acorn, a small JavaScript parser. HTML pages are checked too, including their inline scripts.</p>
-                <div class="row no-print">
-                    <button
-                        id="theme-toggle"
-                        type="button"
-                        class="secondary small"
-                    >Theme: Auto</button>
-                    <button
-                        id="motion-toggle"
-                        type="button"
-                        class="secondary small"
-                        aria-pressed="false"
-                    >Pause motion</button>
-                </div>
             </header>
+
+            <nav
+                class="no-print"
+                aria-label="Views"
+                style="margin-block-end: var(--s-5);"
+            >
+                <ul class="tabs" style="--tab-count: 4">
+                    <li><a
+                            href="#code"
+                            data-v="code"
+                            aria-current="page"
+                        >Code</a></li>
+                    <li><a href="#results" data-v="results">Results</a></li>
+                    <li><a href="#settings" data-v="settings">Settings</a></li>
+                    <li><a href="#about" data-v="about">About</a></li>
+                </ul>
+            </nav>
 
             <noscript>
                 <p role="alert">Criathar needs JavaScript. Enable it and reload.</p>
@@ -405,10 +564,16 @@ html[data-motion="paused"] *, html[data-motion="paused"] *::before, html[data-mo
             ></p>
 
             <div class="stack-lg">
-                <section class="panel" aria-labelledby="code-heading">
-                    <h2 id="code-heading">Code</h2>
+                <section
+                    class="panel"
+                    id="v-code"
+                    aria-labelledby="h-code"
+                    hidden
+                >
+                    <h2 id="h-code">Code</h2>
                     <div class="field">
                         <label for="code">JavaScript or HTML to check</label>
+                        <!-- eslint-disable @html-eslint/use-baseline -- Kept on purpose: it stops mobile keyboards capitalising code. Browsers without it ignore it. -->
                         <textarea
                             id="code"
                             class="code"
@@ -417,29 +582,38 @@ html[data-motion="paused"] *, html[data-motion="paused"] *::before, html[data-mo
                             autocomplete="off"
                             aria-describedby="code-hint"
                         ></textarea>
-                        <span id="code-hint" class="hint">Results update as you type. Press Lint to hear a summary.</span>
+                        <!-- eslint-enable @html-eslint/use-baseline -->
+                        <span id="code-hint" class="hint">Results update as you type. Press Lint to see them on the Results tab.</span>
                     </div>
-                    <div class="row">
-                        <button id="lint" type="button">Lint</button>
+                    <div class="acts">
+                        <button
+                            id="lint"
+                            type="button"
+                            aria-label="Lint, check the code"
+                        >Lint</button>
                         <button
                             id="fix"
                             type="button"
                             class="secondary"
+                            aria-label="Apply fixes, fix the code in the box"
                         >Apply fixes</button>
                         <button
                             id="download"
                             type="button"
                             class="secondary"
-                        >Download fixed code</button>
+                            aria-label="Download, save a fixed copy of the code"
+                        >Download</button>
                         <button
                             id="sample"
                             type="button"
                             class="secondary"
-                        >Load sample</button>
+                            aria-label="Sample, load sample code"
+                        >Sample</button>
                         <button
                             id="clear"
                             type="button"
                             class="secondary"
+                            aria-label="Clear, empty the code box"
                         >Clear</button>
                     </div>
                     <div class="field">
@@ -459,8 +633,12 @@ html[data-motion="paused"] *, html[data-motion="paused"] *::before, html[data-mo
                     ></p>
                 </section>
 
-                <section id="results" aria-labelledby="results-heading">
-                    <h2 id="results-heading">Results</h2>
+                <section
+                    id="v-results"
+                    aria-labelledby="h-results"
+                    hidden
+                >
+                    <h2 id="h-results">Results</h2>
                     <div class="row no-print" style="margin-block-start: var(--s-4);">
                         <button
                             type="button"
@@ -471,6 +649,11 @@ html[data-motion="paused"] *, html[data-motion="paused"] *::before, html[data-mo
                         >Copy all results</button>
                     </div>
                     <p id="copy-status" role="status"></p>
+                    <p
+                        id="stale-note"
+                        class="note note--warn"
+                        hidden
+                    >The code or settings have changed since the last check. Press Lint on the Code page to update these results.</p>
                     <p
                         id="copy-error"
                         role="alert"
@@ -502,7 +685,7 @@ html[data-motion="paused"] *, html[data-motion="paused"] *::before, html[data-mo
                                     <p class="stat__value" id="stat-fixable">0</p>
                                 </div>
                             </div>
-                            <p id="summary" class="note"><span id="summary-text">Waiting for code.</span></p>
+                            <p id="summary" class="note"><span id="summary-text">Press Lint on the Code page to check the code.</span></p>
                         </section>
                         <section class="card" aria-labelledby="card-2">
                             <h3 id="card-2">Problems</h3>
@@ -543,8 +726,13 @@ html[data-motion="paused"] *, html[data-motion="paused"] *::before, html[data-mo
                     </div>
                 </section>
 
-                <section class="panel" aria-labelledby="settings-heading">
-                    <h2 id="settings-heading">Settings</h2>
+                <section
+                    class="panel"
+                    id="v-settings"
+                    aria-labelledby="h-settings"
+                    hidden
+                >
+                    <h2 id="h-settings">Settings</h2>
                     <div class="field">
                         <label for="lang">Language</label>
                         <select id="lang" aria-describedby="lang-hint">
@@ -597,19 +785,33 @@ html[data-motion="paused"] *, html[data-motion="paused"] *::before, html[data-mo
                     </div>
                     <div class="field">
                         <label for="magic-options">Magic number options (JSON)</label>
+                        <!-- eslint-disable @html-eslint/use-baseline -- Kept on purpose: it stops mobile keyboards capitalising code. Browsers without it ignore it. -->
                         <textarea
                             id="magic-options"
+                            placeholder="{&quot;ignore&quot;: [0, 1, -1]}"
                             spellcheck="false"
                             autocapitalize="off"
                             autocomplete="off"
                             aria-describedby="magic-hint magic-error"
                         ></textarea>
-                        <span id="magic-hint" class="hint">Options for criathar/no-magic-numbers, which names each magic number. Leave empty for the defaults. Example: {"minOccurrences": 2, "style": "camelCase", "prefix": "app", "names": {"1000": "MS_PER_SECOND"}}. It also accepts the core options: ignore, ignoreArrayIndexes, ignoreDefaultValues, ignoreClassFieldInitialValues, enforceConst and detectObjects, plus ignoreConstTables (on by default).</span>
+                        <!-- eslint-enable @html-eslint/use-baseline -->
+                        <span id="magic-hint" class="hint">Options for criathar/no-magic-numbers, which names each magic number. Leave empty for the defaults, which are {&quot;ignore&quot;: [0, 1, -1]}. A key you set replaces its default, so use {&quot;ignore&quot;: []} to flag 0, 1 and -1 as well. Example: {"minOccurrences": 2, "style": "camelCase", "prefix": "app", "names": {"1000": "MS_PER_SECOND"}}. It also accepts the core options: ignore, ignoreArrayIndexes, ignoreDefaultValues, ignoreClassFieldInitialValues, enforceConst and detectObjects, plus ignoreConstTables (on by default).</span>
                         <span
                             id="magic-error"
                             role="alert"
                             hidden
                         ></span>
+                    </div>
+                    <div class="field">
+                        <label class="checkline" for="magic-tables">
+                            <input
+                                type="checkbox"
+                                id="magic-tables"
+                                aria-describedby="magic-tables-hint"
+                            >
+                            Skip numbers inside named constant tables
+                        </label>
+                        <span id="magic-tables-hint" class="hint">On by default. Numbers inside a const table with an UPPER_SNAKE name are the definition itself, so they are not flagged. Turn it off to check those numbers too. This sets ignoreConstTables in the options box above, and it is unavailable while that box holds invalid JSON.</span>
                     </div>
                     <fieldset>
                         <legend>Known global names</legend>
@@ -639,37 +841,32 @@ html[data-motion="paused"] *, html[data-motion="paused"] *::before, html[data-mo
                             Show only rules that are on
                         </label>
                         <p id="rule-count" class="hint"></p>
-                        <div
-                            class="table-scroll rules"
-                            tabindex="0"
-                            role="region"
-                            aria-labelledby="rule-cap"
-                        >
-                            <table>
-                                <caption id="rule-cap">Rule levels</caption>
-                                <thead>
-                                    <tr>
-                                        <th scope="col">Rule</th>
-                                        <th scope="col">What it checks</th>
-                                        <th scope="col">Level</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="rule-body"></tbody>
-                            </table>
-                        </div>
+                        <ul
+                            id="rule-body"
+                            class="tags"
+                            aria-label="Rule levels"
+                        ></ul>
                     </details>
                 </section>
 
                 <section
-                    class="stack"
-                    aria-labelledby="about-heading"
-                    style="max-inline-size: var(--text-measure);"
+                    class="stack prose"
+                    id="v-about"
+                    aria-labelledby="h-about"
+                    hidden
                 >
-                    <h2 id="about-heading">About Criathar</h2>
+                    <h2 id="h-about">About Criathar</h2>
                     <p>Criathar runs ESLint on a page you can open anywhere. A parser reads your code and turns it into a tree that ESLint can check. Here the parser is acorn, not the one that comes with ESLint.</p>
                     <p id="versions" class="hint"></p>
                     <p>When fixes change an inline script or style in an HTML page, the matching hashes in a Content-Security-Policy meta tag are recalculated, so the page keeps working.</p>
                     <p class="hint">Your code stays on your device. The page only loads acorn and ESLint from a public script host.</p>
+                    <nav aria-label="Related links">
+                        <ul class="navlist">
+                            <li><a href="https://eslint.org/">ESLint</a></li>
+                            <li><a href="https://github.com/acornjs/acorn">acorn</a></li>
+                            <li><a href="https://nuadyr.github.io/">Nuadyr</a></li>
+                        </ul>
+                    </nav>
                 </section>
             </div>
         </main>
@@ -677,7 +874,7 @@ html[data-motion="paused"] *, html[data-motion="paused"] *::before, html[data-mo
         <footer class="site-footer">
             <div class="wrap">
                 <p>Criathar by <a href="https://nuadyr.github.io/">Nuadyr</a>. © 2026.</p>
-                <p class="hint">Built on the DeckKit design system.</p>
+                <p class="hint">Built on the Aengus design system.</p>
             </div>
         </footer>
 
@@ -846,13 +1043,123 @@ Learn more: https://html.spec.whatwg.org/multipage/semantics.html#character-enco
         </script>
         <script>
 'use strict';
+/**
+ * @file Criathar: ESLint in the browser with acorn as the parser. Settings, shared kit helpers, the Criathar rule and the app.
+ * Everything runs in the browser with no build step.
+ */
+
+/* ---------- Settings: every pause, timeout, retry and limit is here. Times are in milliseconds. ---------- */
+const LINT_DELAY_MS = 500; // Pause after the last key press before the code is checked again.
+const COPY_ANNOUNCE_MS = 100; // Wait before "Copied" is announced, so the focus change is read first.
+const REVOKE_DELAY_MS = 10000; // Wait before a download file address is released.
+const RULES_SHOWN = 60; // Most rules listed at once in the rule table.
+const SEVERITY_ERROR = 2; // The ESLint severity number for an error (1 is a warning, 0 is off).
+const MAGIC_DEFAULTS = { ignore: [0, 1, -1] }; // Magic number options used for anything the options box leaves out.
+
 /* ---------- Helpers: keep, they are used by the kit ---------- */
+/**
+ * Shorthand for document.getElementById.
+ * @param {string} id The element id, without a leading "#".
+ * @returns {HTMLElement|null} The element, or null if the page has no element with that id.
+ */
 const $ = (id) => document.getElementById(id);
+/**
+ * Safe localStorage wrapper. Values are stored as JSON.
+ * Every method catches storage errors (private mode, blocked storage, full quota), so the page keeps working without saving.
+ * @namespace store
+ */
 const store = {
+  /**
+   * Read a saved value.
+   * @param {string} key Storage key.
+   * @param {*} [fallback=null] Returned when the key is missing, unreadable or storage is unavailable.
+   * @returns {*} The parsed value, or the fallback.
+   */
   get(key, fallback = null) { try { const v = localStorage.getItem(key); return v === null ? fallback : JSON.parse(v); } catch { return fallback; } },
+  /**
+   * Save a value as JSON.
+   * @param {string} key Storage key.
+   * @param {*} value Any JSON-serialisable value.
+   * @returns {boolean} True if the value was saved, false if storage failed.
+   */
   set(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch { return false; } },
+  /**
+   * Delete a saved value. Does nothing if storage is unavailable.
+   * @param {string} key Storage key.
+   * @returns {void}
+   */
   remove(key) { try { localStorage.removeItem(key); } catch { /* nothing saved */ } },
 };
+
+/* Live regions: say(el, text) announces politely, fail(el, text) shows an alert, clear(el) hides both. */
+/**
+ * Announce a polite message in a role="status" element.
+ * @param {HTMLElement} el The live region.
+ * @param {string} text The message. An empty string clears it.
+ * @returns {void}
+ */
+const say = (el, text) => { el.textContent = text; };
+/**
+ * Show an error in a role="alert" element that starts hidden. An empty string hides it again.
+ * @param {HTMLElement} el The alert element.
+ * @param {string} text The error message.
+ * @returns {void}
+ */
+const fail = (el, text) => { el.textContent = text; el.hidden = !text; };
+/**
+ * Empty live regions and hide alerts. Call it before a new action so old messages do not linger.
+ * @param {...HTMLElement} els Status or alert elements.
+ * @returns {void}
+ */
+const clear = (...els) => els.forEach((el) => { el.textContent = ''; if (el.getAttribute('role') === 'alert') { el.hidden = true; } });
+
+/* Copy with a fallback for browsers or pages without the async clipboard. */
+/**
+ * Copy text to the clipboard. Uses the async clipboard API, then falls back to a hidden textarea and execCommand.
+ * @param {string} text The text to copy.
+ * @returns {Promise<boolean>} True if the copy worked, false if both methods failed.
+ */
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch { /* fall through */ }
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  let ok = false; try { ok = document.execCommand('copy'); } catch { ok = false; }
+  ta.remove(); return ok;
+}
+
+/* Move focus to a heading after content changes so keyboard and screen reader users land in the right place. */
+/**
+ * Move keyboard focus to a heading so keyboard and screen reader users land in the new content.
+ * Adds tabindex="-1" so the heading can take focus without joining the tab order.
+ * @param {HTMLElement} el The heading to focus.
+ * @returns {void}
+ */
+function focusHeading(el) { el.setAttribute('tabindex', '-1'); el.focus({ preventScroll: false }); }
+
+/* ---------- Optional helpers from real projects ---------- */
+/**
+ * Show one view at a time, chosen by the URL hash. It shows the section with id "v-<id>", marks the tab with data-v="<id>" as the current page,
+ * sets the page title and moves focus to the heading with id "h-<id>". Back and forward buttons work.
+ * Give each section the hidden attribute in the HTML so there is no flash.
+ * Example: initViews({ list: 'Browse', add: 'Add' }, () => 'list', 'My Project');
+ * @param {Object<string, string>} titles View ids mapped to their page titles.
+ * @param {function(): string} getFallback Returns the id to show when the hash names no view.
+ * @param {string} siteName Added to the end of the page title.
+ * @returns {void}
+ */
+function initViews(titles, getFallback, siteName) {
+  const show = (focus) => {
+    let id = location.hash.slice(1);
+    if (!titles[id]) { id = getFallback(); }
+    Object.keys(titles).forEach((k) => { $('v-' + k).hidden = k !== id; });
+    document.querySelectorAll('.tabs a').forEach((a) => { if (a.dataset.v === id) { a.setAttribute('aria-current', 'page'); } else { a.removeAttribute('aria-current'); } });
+    document.title = titles[id] + ' | ' + siteName;
+    if (focus) { focusHeading($('h-' + id)); }
+  };
+  window.addEventListener('hashchange', () => show(true));
+  show(false);
+}
 
 /* One-off migration from the tool's old name: copy saved code and settings to the new keys, then drop the old ones. */
 (function migrateOldName() {
@@ -869,70 +1176,13 @@ const store = {
   } catch { /* storage unavailable: nothing to migrate */ }
 })();
 
-/* Live regions: say(el, text) announces politely, fail(el, text) shows an alert, clear(el) hides both. */
-const say = (el, text) => { el.textContent = text; };
-const fail = (el, text) => { el.textContent = text; el.hidden = !text; };
-const clear = (...els) => els.forEach((el) => { el.textContent = ''; if (el.getAttribute('role') === 'alert') {el.hidden = true;} });
-
-/* Copy with a fallback for browsers or pages without the async clipboard. */
-async function copyText(text) {
-  try { await navigator.clipboard.writeText(text); return true; } catch { /* fall through */ }
-  const ta = document.createElement('textarea');
-  ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
-  document.body.appendChild(ta); ta.select();
-  let ok = false; try { ok = document.execCommand('copy'); } catch { ok = false; }
-  ta.remove(); return ok;
-}
-
-/* Move focus to a heading after content changes so keyboard and screen reader users land in the right place. */
-function focusHeading(el) { el.setAttribute('tabindex', '-1'); el.focus({ preventScroll: false }); }
-
-/* ---------- Theme: Auto follows the system, Light and Dark override it ---------- */
-(function theme() {
-  const root = document.documentElement;
-  const btn = $('theme-toggle');
-  const order = ['auto', 'light', 'dark'];
-  const label = { auto: 'Auto', light: 'Light', dark: 'Dark' };
-  const metas = [...document.querySelectorAll('meta[name="theme-color"]')];
-  const paper = { light: '#f5f6f7', dark: '#111213' };
-  const apply = (mode) => {
-    if (mode === 'auto') {delete root.dataset.theme;} else {root.dataset.theme = mode;}
-    btn.textContent = 'Theme: ' + label[mode];
-    // A manual choice pins the address bar colour; Auto restores the two media-specific values.
-    metas.forEach((m) => {
-      const forScheme = m.media.includes('dark') ? 'dark' : 'light';
-      m.content = mode === 'auto' ? paper[forScheme] : paper[mode];
-    });
-  };
-  let mode = order.includes(store.get('kit-theme-mode')) ? store.get('kit-theme-mode') : 'auto';
-  try { const legacy = localStorage.getItem('kit-theme'); if (legacy === 'light' || legacy === 'dark') {mode = mode === 'auto' ? legacy : mode;} } catch { /* ignore */ }
-  apply(mode);
-  btn.addEventListener('click', () => {
-    mode = order[(order.indexOf(mode) + 1) % order.length];
-    apply(mode);
-    store.set('kit-theme-mode', mode);
-    try { if (mode === 'auto') {localStorage.removeItem('kit-theme');} else {localStorage.setItem('kit-theme', mode);} } catch { /* ignore */ }
-  });
-})();
-
-/* ---------- Motion: the button pauses all animation and remembers the choice ---------- */
-(function motion() {
-  const btn = $('motion-toggle');
-  const set = (paused) => {
-    if (paused) {document.documentElement.dataset.motion = 'paused';} else {delete document.documentElement.dataset.motion;}
-    btn.setAttribute('aria-pressed', String(paused));
-    btn.textContent = paused ? 'Resume motion' : 'Pause motion';
-  };
-  set(store.get('kit-motion-paused', false) === true);
-  btn.addEventListener('click', () => {
-    const paused = document.documentElement.dataset.motion !== 'paused';
-    set(paused); store.set('kit-motion-paused', paused);
-  });
-})();
-
 /* CRIATHAR-RULE-START  criathar/no-magic-numbers. The test harness extracts this block, so keep it self-contained. */
 const CRIATHAR_MAGIC = (function () {
   const MAX_INDEX = 4294967295;
+  const MIN_NAME_LENGTH = 3; // A name with fewer letters than this is too short to mean anything.
+  const CONF_SAFE = 2; // Confidence: safe to apply automatically.
+  const CONF_GUESS = 1; // Confidence: a suggestion only.
+  const NAMES_SHOWN = 5; // Most constant names listed in the Apply fixes message.
   const R = (s) => new RegExp('^(?:' + s + ')');
   const GENERIC = new Set('value val num number tmp temp obj data result res ret arr item el elem fn cb callback args arg param params x y z i j k n m a b c d e f o p q r s t u v w idx'.split(' '));
   const RESERVED = new Set('break case catch class const continue debugger default delete do else enum export extends false finally for function if import in instanceof new null return super switch this throw true try typeof var void while with yield let static await async of get set undefined NaN Infinity eval arguments'.split(' '));
@@ -941,7 +1191,7 @@ const CRIATHAR_MAGIC = (function () {
   /* Built-in dictionary: value -> [name, test]. test 1 = always right; a pattern = right only when a context word starts with it. */
   const DICT = Object.create(null);
   const add = (v, n, t) => { (DICT[String(v)] = DICT[String(v)] || []).push([n, t === undefined ? 1 : t]); };
-  [
+  const DICT_ROWS = [
     [255, 'RGB_MAX', R('rgb|colou?r|channel|pixel|alpha|hex|lum|gr[ae]y')], [255, 'MAX_BYTE'],
     [360, 'FULL_TURN_DEGREES', R('deg|angle|hue|turn|rot|circle|wrap|op:%')], [180, 'HALF_TURN_DEGREES', R('deg|angle|hue|turn|rot|lat|lon')], [90, 'QUARTER_TURN_DEGREES', R('deg|angle|hue|turn|rot|lat')],
     [16, 'HEX_RADIX', R('radix|string|hex|parse')], [2, 'BINARY_RADIX', R('radix|string|binary')], [8, 'OCTAL_RADIX', R('radix|string|octal')], [36, 'MAX_RADIX', R('radix|string')],
@@ -950,19 +1200,24 @@ const CRIATHAR_MAGIC = (function () {
     [0.2126, 'LUMA_RED_WEIGHT'], [0.7152, 'LUMA_GREEN_WEIGHT'], [0.0722, 'LUMA_BLUE_WEIGHT'], [12.92, 'SRGB_LINEAR_DIVISOR'], [0.04045, 'SRGB_LINEAR_THRESHOLD'], [0.055, 'SRGB_OFFSET'], [1.055, 'SRGB_GAMMA_SCALE'], [2.4, 'SRGB_GAMMA'], [0.0031308, 'SRGB_ENCODE_THRESHOLD'],
     [0.05, 'WCAG_LUMINANCE_OFFSET', R('lum|contrast|wcag|ratio')], [4.5, 'WCAG_AA_NORMAL_TEXT_RATIO', R('contrast|ratio|wcag|aa|text')], [3, 'WCAG_AA_LARGE_TEXT_RATIO', R('contrast|ratio|wcag|aa|large')],
     [7, 'WCAG_AAA_NORMAL_TEXT_RATIO', R('contrast|ratio|wcag|aaa')], [7, 'DAYS_PER_WEEK', R('week|day')], [6.283185307179586, 'TWO_PI'],
-  ].forEach((e) => add(e[0], e[1], e[2]));
+  ];
+  DICT_ROWS.forEach(([value, name, test]) => add(value, name, test));
   /* OKLab matrices: RGB to LMS, cube-rooted LMS to Lab, and the two inverses. Signs live in the code, so only magnitudes are listed. */
   const matrix = (rows, rn, cn, fn) => rows.forEach((row, i) => row.forEach((v, j) => add(v, fn(rn[i], cn[j]))));
-  matrix([[0.4122214708, 0.5363325363, 0.0514459929], [0.2119034982, 0.6806995451, 0.1073969566], [0.0883024619, 0.2817188376, 0.6299787005]], 'LMS', 'RGB', (r, c) => 'OKLAB_RGB_TO_' + r + '_FROM_' + c);
-  matrix([[0.2104542553, 0.793617785, 0.0040720468], [1.9779984951, 2.428592205, 0.4505937099], [0.0259040371, 0.7827717662, 0.808675766]], ['L', 'A', 'B'], 'LMS', (r, c) => 'OKLAB_LAB_' + r + '_FROM_' + c);
-  matrix([[0.3963377774, 0.2158037573], [0.1055613458, 0.0638541728], [0.0894841775, 1.291485548]], 'LMS', ['A', 'B'], (r, c) => 'OKLAB_' + r + '_FROM_LAB_' + c);
-  matrix([[4.0767416621, 3.3077115913, 0.2309699292], [1.2684380046, 2.6097574011, 0.3413193965], [0.0041960863, 0.7034186147, 1.707614701]], 'RGB', 'LMS', (r, c) => 'OKLAB_' + r + '_FROM_' + c + '_LINEAR');
+  const OKLAB_RGB_TO_LMS_ROWS = [[0.4122214708, 0.5363325363, 0.0514459929], [0.2119034982, 0.6806995451, 0.1073969566], [0.0883024619, 0.2817188376, 0.6299787005]];
+  matrix(OKLAB_RGB_TO_LMS_ROWS, 'LMS', 'RGB', (r, c) => 'OKLAB_RGB_TO_' + r + '_FROM_' + c);
+  const OKLAB_LMS_TO_LAB_ROWS = [[0.2104542553, 0.793617785, 0.0040720468], [1.9779984951, 2.428592205, 0.4505937099], [0.0259040371, 0.7827717662, 0.808675766]];
+  matrix(OKLAB_LMS_TO_LAB_ROWS, ['L', 'A', 'B'], 'LMS', (r, c) => 'OKLAB_LAB_' + r + '_FROM_' + c);
+  const OKLAB_LAB_TO_LMS_ROWS = [[0.3963377774, 0.2158037573], [0.1055613458, 0.0638541728], [0.0894841775, 1.291485548]];
+  matrix(OKLAB_LAB_TO_LMS_ROWS, 'LMS', ['A', 'B'], (r, c) => 'OKLAB_' + r + '_FROM_LAB_' + c);
+  const OKLAB_LMS_TO_RGB_ROWS = [[4.0767416621, 3.3077115913, 0.2309699292], [1.2684380046, 2.6097574011, 0.3413193965], [0.0041960863, 0.7034186147, 1.707614701]];
+  matrix(OKLAB_LMS_TO_RGB_ROWS, 'RGB', 'LMS', (r, c) => 'OKLAB_' + r + '_FROM_' + c + '_LINEAR');
 
   const wordsOf = (s) => String(s).replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2').split(/[^A-Za-z0-9]+/).filter(Boolean).map((w) => w.toLowerCase());
-  const meaningful = (ws) => !!ws && ws.length > 0 && ws.join('').length >= 3 && !/^\d/.test(ws[0]) && !ws.every((w) => GENERIC.has(w));
+  const meaningful = (ws) => !!ws && ws.length > 0 && ws.join('').length >= MIN_NAME_LENGTH && !/^\d/.test(ws[0]) && !ws.every((w) => GENERIC.has(w));
   const cap = (w) => w[0].toUpperCase() + w.slice(1);
   const fmt = (ws, style) => (style === 'camelCase' ? ws.map((w, i) => (i ? cap(w) : w)).join('') : style === 'PascalCase' ? ws.map(cap).join('') : ws.join('_').toUpperCase());
-  const keyOf = (v) => (typeof v === 'bigint' ? String(v < 0n ? -v : v) + 'n' : String(Math.abs(v)));
+  const keyOf = (v) => (typeof v === 'bigint' ? String(v).replace(/^-/, '') + 'n' : String(Math.abs(v)));
   const nameOf = (n) => {
     if (!n) {return '';}
     switch (n.type) {
@@ -978,7 +1233,7 @@ const CRIATHAR_MAGIC = (function () {
 
   /* Names found near the number, nearest first, stopping at the first function that has a name. */
   function contextOf(full) {
-    const names = []; let fn = '', pending = false, child = full;
+    const names = [], fn = ''; let pending = false, child = full;
     for (let p = full.parent; p; child = p, p = p.parent) {
       let nm = '';
       switch (p.type) {
@@ -1039,13 +1294,13 @@ const CRIATHAR_MAGIC = (function () {
     const trivial = c.key === '0' || c.key === '1';
     const d = direct(c.full, ctx), ent = DICT[c.key];
     let w = null, conf = 0, dict = false, spec = false;
-    if (user[c.key]) { w = wordsOf(user[c.key]); conf = 2; }
-    else if (d && d.call && !trivial) { w = d.words; conf = 2; }
+    if (user[c.key]) { w = wordsOf(user[c.key]); conf = CONF_SAFE; }
+    else if (d && d.call && !trivial) { w = d.words; conf = CONF_SAFE; }
     else {
       const hit = ent && ent.find((e) => e[1] === 1 || words.some((x) => e[1].test(x)));
-      if (hit) { w = wordsOf(hit[0]); conf = 2; dict = true; spec = hit[1] !== 1; }
-      else if (d && !trivial) { w = d.words; conf = 2; }
-      else { w = trivial ? null : loose(c.full, ctx); conf = w ? 1 : 0; if (!w && ent) { w = wordsOf(ent[0][0]); conf = 1; } }
+      if (hit) { w = wordsOf(hit[0]); conf = CONF_SAFE; dict = true; spec = hit[1] !== 1; }
+      else if (d && !trivial) { w = d.words; conf = CONF_SAFE; }
+      else { w = trivial ? null : loose(c.full, ctx); conf = w ? CONF_GUESS : 0; if (!w && ent) { w = wordsOf(ent[0][0]); conf = CONF_GUESS; } }
     }
     if (!w || !w.length) {return null;}
     if (prefix.length && prefix.join('|') !== w.slice(0, prefix.length).join('|')) {w = prefix.concat(w);}
@@ -1193,7 +1448,7 @@ const CRIATHAR_MAGIC = (function () {
             gs.forEach((g) => g.members.forEach((i) => edits.push([cands[i].full.range[0], cands[i].full.range[1], (cands[i].neg ? '-' : '') + g.name])));
             edits.sort((a, b) => b[0] - a[0]);
             let out = text;
-            edits.forEach((e) => { out = out.slice(0, e[0]) + e[2] + out.slice(e[1]); });
+            edits.forEach(([from, to, replacement]) => { out = out.slice(0, from) + replacement + out.slice(to); });
             const decls = gs.filter((g) => !g.reuse).sort((a, b) => a.first - b.first).map((g) => 'const ' + g.name + ' = ' + g.raw + ';');
             return decls.length ? out.slice(0, at) + pre + decls.join(eol) + post + out.slice(at) : out;
           };
@@ -1204,16 +1459,16 @@ const CRIATHAR_MAGIC = (function () {
             return fixer.replaceTextRange([a, text.length - b], out.slice(a, out.length - b));
           };
 
-          const fixGroups = [...groups.values()].filter((g) => g.ok && g.conf === 2).sort((a, b) => a.first - b.first);
+          const fixGroups = [...groups.values()].filter((g) => g.ok && g.conf === CONF_SAFE).sort((a, b) => a.first - b.first);
           cands.forEach((c, i) => {
             const g = of[i], data = { raw: c.raw };
-            if (g && g.ok && g.conf === 2) {context.report({ node: c.full, messageId: 'named', data: Object.assign({ name: g.name }, data) });}
+            if (g && g.ok && g.conf === CONF_SAFE) {context.report({ node: c.full, messageId: 'named', data: Object.assign({ name: g.name }, data) });}
             else if (g && g.ok) {context.report({ node: c.full, messageId: 'suggested', data: Object.assign({ name: g.name }, data), suggest: [{ messageId: 'useName', data: { name: g.name }, fix: (f) => patch(f, g.text || (g.text = build([g]))) }] });}
             else {context.report({ node: c.full, messageId: 'noMagic', data });}
           });
           if (fixGroups.length) {
             const out = build(fixGroups), count = fixGroups.reduce((n, g) => n + g.members.length, 0), shown = fixGroups.map((g) => g.name);
-            if (out !== text) {context.report({ loc: { start: { line: 1, column: 0 }, end: { line: 1, column: 0 } }, messageId: 'extract', data: { count: String(count), noun: count === 1 ? 'number' : 'numbers', names: shown.slice(0, 5).join(', ') + (shown.length > 5 ? ' and more' : '') }, fix: (f) => patch(f, out) });}
+            if (out !== text) {context.report({ loc: { start: { line: 1, column: 0 }, end: { line: 1, column: 0 } }, messageId: 'extract', data: { count: String(count), noun: count === 1 ? 'number' : 'numbers', names: shown.slice(0, NAMES_SHOWN).join(', ') + (shown.length > NAMES_SHOWN ? ' and more' : '') }, fix: (f) => patch(f, out) });}
           }
         },
       };
@@ -1247,6 +1502,8 @@ const CJS_EXPORTS = /(?:^|[^.\w$])(?:module\s*\.\s*exports|exports\s*(?:\.\s*[\w
 const CJS_NODE_NAMES = /(?:^|[^.\w$])(?:__dirname|__filename)(?![\w$])/;
 const UMD_GUARD = /typeof\s+(?:module|exports|define)(?![\w$])/;
 const LINE_END = /[\r\n\u2028\u2029]/;
+const ESCAPE_LENGTH = 2; // A backslash and the character it escapes.
+const DELIMITER_LENGTH = 2; // The two-character delimiters ${, /* and */.
 const WORD_BEFORE_REGEX = /^(?:return|typeof|case|do|else|in|of|void|delete|throw|new|yield|await)$/;
 
 function blankNoise(text) {
@@ -1259,9 +1516,9 @@ function blankNoise(text) {
     let k = from + 1;
     while (k < n) {
       const c = text[k];
-      if (c === '\\') { k += 2; continue; }
+      if (c === '\\') { k += ESCAPE_LENGTH; continue; }
       if (c === '`') { fill(from, k + 1); return { end: k + 1, open: false }; }
-      if (c === '$' && text[k + 1] === '{') { fill(from, k + 2); return { end: k + 2, open: true }; }
+      if (c === '$' && text[k + 1] === '{') { fill(from, k + DELIMITER_LENGTH); return { end: k + DELIMITER_LENGTH, open: true }; }
       k++;
     }
     fill(from, n);
@@ -1271,10 +1528,10 @@ function blankNoise(text) {
   while (i < n) {
     const c = text[i], d = text[i + 1];
     if (c === '/' && d === '/') { let k = i; while (k < n && !LINE_END.test(text[k])) { k++; } fill(i, k); i = k; continue; }
-    if (c === '/' && d === '*') { const k = text.indexOf('*/', i + 2), e = k < 0 ? n : k + 2; fill(i, e); i = e; continue; }
+    if (c === '/' && d === '*') { const k = text.indexOf('*/', i + DELIMITER_LENGTH), e = k < 0 ? n : k + DELIMITER_LENGTH; fill(i, e); i = e; continue; }
     if (c === '"' || c === "'") {
       let k = i + 1;
-      while (k < n && text[k] !== c && !LINE_END.test(text[k])) { k += text[k] === '\\' ? 2 : 1; }
+      while (k < n && text[k] !== c && !LINE_END.test(text[k])) { k += text[k] === '\\' ? ESCAPE_LENGTH : 1; }
       const close = Math.min(n, k), shut = close < n && text[close] === c;
       out[i] = c; fill(i + 1, close);
       if (shut) { out[close] = c; }
@@ -1287,7 +1544,7 @@ function blankNoise(text) {
         let k = i + 1, inClass = false, closed = false;
         while (k < n && !LINE_END.test(text[k])) {
           const ch = text[k];
-          if (ch === '\\') { k += 2; continue; }
+          if (ch === '\\') { k += ESCAPE_LENGTH; continue; }
           if (ch === '[') { inClass = true; } else if (ch === ']') { inClass = false; } else if (ch === '/' && !inClass) { closed = true; break; }
           k++;
         }
@@ -1621,10 +1878,10 @@ function makeParser(acorn) {
   const magicOptions = () => {
     const raw = (s.magic || '').trim();
     clear($('magic-error'));
-    if (!raw) {return {};}
-    try { const o = JSON.parse(raw); if (o && typeof o === 'object' && !Array.isArray(o)) {return o;} } catch (e) { fail($('magic-error'), 'The magic number options are not valid JSON, so the defaults are used. ' + e.message); return {}; }
+    if (!raw) {return { ...MAGIC_DEFAULTS };}
+    try { const o = JSON.parse(raw); if (o && typeof o === 'object' && !Array.isArray(o)) {return { ...MAGIC_DEFAULTS, ...o };} } catch (e) { fail($('magic-error'), 'The magic number options are not valid JSON, so the defaults are used. ' + e.message); return { ...MAGIC_DEFAULTS }; }
     fail($('magic-error'), 'The magic number options must be a JSON object, so the defaults are used.');
-    return {};
+    return { ...MAGIC_DEFAULTS };
   };
 
   const config = (unit) => {
@@ -1642,6 +1899,7 @@ function makeParser(acorn) {
   };
 
   let last = [];
+  let ran = false; /* nothing is checked until Lint is pressed */
   let extracted = 0; /* numbers that Apply fixes will move into named constants */
   let source = 'input.js'; /* shown in copied reports; becomes the opened file's name */
   const isHtml = () => s.lang === 'html' || (s.lang === 'auto' && (HTML_FILE.test(source) || HTML_START.test(code.value)));
@@ -1661,8 +1919,8 @@ function makeParser(acorn) {
     const hint = $('source-hint'), html = isHtml();
     $('source').disabled = html;
     if (html) {
-      const all = runs || [], classic = all.filter((r) => r.unit.sourceType === 'script');
-      const blocks = classic.reduce((n, r) => n + r.unit.ranges.length, 0), modules = all.length - classic.length, parts = [];
+      const runList = runs || [], classic = runList.filter((r) => r.unit.sourceType === 'script');
+      const blocks = classic.reduce((n, r) => n + r.unit.ranges.length, 0), modules = runList.length - classic.length, parts = [];
       if (blocks) { parts.push(plural(blocks, 'script') + ' with no type, checked together as one Script because they share names'); }
       if (modules) { parts.push(plural(modules, 'module script') + ', each checked on its own as a Module'); }
       hint.textContent = 'Not used for HTML, because each script tag says what it is. ' + (parts.length ? 'This page has ' + parts.join(' and ') + '.' : 'This page has no inline scripts to check.');
@@ -1720,7 +1978,7 @@ function makeParser(acorn) {
   };
   const cspNote = (r) => (r.csp ? plural(r.csp, 'CSP hash').replace('hashs', 'hashes') + ' updated. ' : '') + (r.cspSkipped ? 'CSP hashes may be out of date: hashing needs a secure (https) page. ' : '');
   const counts = () => {
-    const errors = last.filter((m) => m.severity === 2).length;
+    const errors = last.filter((m) => m.severity === SEVERITY_ERROR).length;
     return { errors, warnings: last.length - errors, fixable: last.filter((m) => m.fix).length + extracted };
   };
   const plural = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
@@ -1736,7 +1994,9 @@ function makeParser(acorn) {
   }
   function jump(m) {
     const a = offset(m.line, m.column), b = m.endLine ? offset(m.endLine, m.endColumn) : a;
-    code.focus(); code.setSelectionRange(a, Math.max(a, b));
+    const select = () => { code.focus(); code.setSelectionRange(a, Math.max(a, b)); };
+    /* The code box lives on the Code tab. Switch to it first, then select once the view has changed. */
+    if ($('v-code').hidden) { window.addEventListener('hashchange', () => setTimeout(select), { once: true }); location.hash = 'code'; } else { select(); }
   }
 
   function render() {
@@ -1749,8 +2009,8 @@ function makeParser(acorn) {
     $('result-body').replaceChildren(...last.map((m) => {
       const btn = h('button', { type: 'button', class: 'linklike' }, 'Line ' + m.line + ', column ' + m.column);
       btn.addEventListener('click', () => jump(m));
-      const sev = m.severity === 2 ? h('span', { class: 'badge badge--problem' }, 'Error') : h('span', { class: 'badge badge--warn' }, 'Warning');
-      const rule = m.ruleId ? h('a', { href: docUrl(m.ruleId) }, m.ruleId, h('span', { class: 'vh' }, ' rule documentation')) : (m.fatal ? 'Parsing error' : 'Comment directive');
+      const sev = m.severity === SEVERITY_ERROR ? h('span', { class: 'badge badge--problem' }, 'Error') : h('span', { class: 'badge badge--warn' }, 'Warning');
+      const rule = m.ruleId ? h('a', { href: docUrl(m.ruleId) }, m.ruleId, h('span', { class: 'visually-hidden' }, ' rule documentation')) : (m.fatal ? 'Parsing error' : 'Comment directive');
       return h('tr', {}, h('td', { 'data-label': 'Position' }, btn), h('td', { 'data-label': 'Level' }, sev), h('td', { 'data-label': 'Message' }, m.message), h('td', { 'data-label': 'Rule' }, rule));
     }));
   }
@@ -1772,55 +2032,77 @@ function makeParser(acorn) {
       }
     } catch (e) { fail(error, 'ESLint stopped: ' + e.message); return; }
     render();
+    ran = true; $('stale-note').hidden = true;
     if (announce) {say(status, summaryText());}
   }
+  /* Changes never start a check. They only mark the results as out of date. */
+  const markStale = () => { if (ran) { $('stale-note').hidden = false; } };
 
   let timer;
-  const later = () => { clearTimeout(timer); timer = setTimeout(() => { store.set('criathar-code', code.value); run(false); }, 500); };
+  const later = () => { clearTimeout(timer); timer = setTimeout(() => { store.set('criathar-code', code.value); }, LINT_DELAY_MS); markStale(); };
 
   function renderRules() {
     const q = $('rule-search').value.trim().toLowerCase(), only = $('rule-on').checked;
     const desc = (r) => (r.meta && r.meta.docs && r.meta.docs.description) || '';
     const list = all.filter(([n, r]) => (!q || n.includes(q) || desc(r).toLowerCase().includes(q)) && (!only || s.rules[n]));
-    $('rule-body').replaceChildren(...list.slice(0, 60).map(([n, r]) => {
+    $('rule-body').replaceChildren(...list.slice(0, RULES_SHOWN).map(([n, r]) => {
       const note = (r.meta && r.meta.fixable ? ' Can be fixed automatically.' : '') + (r.meta && r.meta.deprecated ? ' Deprecated.' : '');
-      const sel = h('select', { 'data-rule': n, 'aria-label': 'Level for ' + n },
+      const id = 'rule-level-' + n;
+      const sel = h('select', { id, 'data-rule': n },
         ...['Off', 'Warn', 'Error'].map((t, i) => { const o = h('option', { value: String(i) }, t); o.selected = (s.rules[n] || 0) === i; return o; }));
-      return h('tr', {}, h('th', { scope: 'row' }, n), h('td', {}, desc(r) + note), h('td', {}, sel));
+      return h('li', { class: 'tagrow' },
+        h('strong', { class: 'tagrow__name' }, n),
+        h('span', { class: 'tagrow__desc' }, desc(r) + note),
+        h('span', { class: 'field' }, h('label', { for: id, class: 'visually-hidden' }, 'Level for ' + n), sel));
     }));
-    $('rule-count').textContent = 'Showing ' + Math.min(list.length, 60) + ' of ' + list.length + ' matching rules. Search to narrow the list.';
+    $('rule-count').textContent = 'Showing ' + Math.min(list.length, RULES_SHOWN) + ' of ' + list.length + ' matching rules. Search to narrow the list.';
   }
 
   $('rule-body').addEventListener('change', (e) => {
     if (!e.target.matches('select[data-rule]')) {return;}
-    s.rules[e.target.dataset.rule] = Number(e.target.value); save(); run(false);
+    s.rules[e.target.dataset.rule] = Number(e.target.value); save(); markStale();
   });
   $('rule-search').addEventListener('input', renderRules);
   $('rule-on').addEventListener('change', renderRules);
 
   $('magic-options').value = s.magic || '';
-  $('magic-options').addEventListener('change', (e) => { s.magic = e.target.value; save(); run(false); });
+  /* The tables toggle is a view of ignoreConstTables in the JSON box, so the two can never disagree. */
+  const readMagic = () => {
+    const raw = $('magic-options').value.trim();
+    if (!raw) {return {};}
+    try { const o = JSON.parse(raw); return o && typeof o === 'object' && !Array.isArray(o) ? o : null; } catch { return null; }
+  };
+  const syncTables = () => { const o = readMagic(); $('magic-tables').disabled = o === null; if (o) { $('magic-tables').checked = o.ignoreConstTables !== false; } };
+  $('magic-options').addEventListener('change', (e) => { s.magic = e.target.value; syncTables(); save(); markStale(); });
+  $('magic-tables').addEventListener('change', (e) => {
+    const o = readMagic();
+    if (!o) { syncTables(); return; }
+    if (e.target.checked) { delete o.ignoreConstTables; } else { o.ignoreConstTables = false; }
+    const text = Object.keys(o).length ? JSON.stringify(o) : '';
+    $('magic-options').value = text; s.magic = text; save(); markStale();
+  });
+  syncTables();
   $('source-help').replaceChildren(...Object.values(CODE_TYPES).map((t) => h('li', {}, h('strong', {}, t.name + ': '), t.plain)));
   $('ecma').value = s.ecma; $('source').value = s.source; $('preset').value = s.preset; $('lang').value = s.lang;
   $('g-browser').checked = s.browser; $('g-node').checked = s.node;
-  $('ecma').addEventListener('change', (e) => { s.ecma = e.target.value; save(); run(false); });
-  $('source').addEventListener('change', (e) => { s.source = e.target.value; save(); run(false); });
-  $('lang').addEventListener('change', (e) => { s.lang = e.target.value; save(); run(false); });
-  $('g-browser').addEventListener('change', (e) => { s.browser = e.target.checked; save(); run(false); });
-  $('g-node').addEventListener('change', (e) => { s.node = e.target.checked; save(); run(false); });
-  $('preset').addEventListener('change', (e) => { s.preset = e.target.value; s.rules = presetRules(s.preset); save(); renderRules(); run(false); });
+  $('ecma').addEventListener('change', (e) => { s.ecma = e.target.value; save(); markStale(); });
+  $('source').addEventListener('change', (e) => { s.source = e.target.value; save(); markStale(); });
+  $('lang').addEventListener('change', (e) => { s.lang = e.target.value; save(); markStale(); });
+  $('g-browser').addEventListener('change', (e) => { s.browser = e.target.checked; save(); markStale(); });
+  $('g-node').addEventListener('change', (e) => { s.node = e.target.checked; save(); markStale(); });
+  $('preset').addEventListener('change', (e) => { s.preset = e.target.value; s.rules = presetRules(s.preset); save(); renderRules(); markStale(); });
 
   code.addEventListener('input', later);
-  $('lint').addEventListener('click', () => run(true));
-  $('sample').addEventListener('click', () => { source = 'input.js'; code.value = SAMPLE; store.set('criathar-code', SAMPLE); run(true); });
-  $('clear').addEventListener('click', () => { source = 'input.js'; code.value = ''; store.set('criathar-code', ''); run(false); say(status, 'The code box is empty.'); code.focus(); });
+  $('lint').addEventListener('click', () => { run(true); location.hash = 'results'; });
+  $('sample').addEventListener('click', () => { source = 'input.js'; code.value = SAMPLE; store.set('criathar-code', SAMPLE); markStale(); say(status, 'The sample code is loaded. Press Lint to check it.'); });
+  $('clear').addEventListener('click', () => { source = 'input.js'; code.value = ''; store.set('criathar-code', ''); markStale(); say(status, 'The code box is empty.'); code.focus(); });
   $('fix').addEventListener('click', async () => {
     clear(error);
     try {
       const r = isHtml() ? await fixHtml(code.value) : fixJs(code.value), moved = r.moved;
       if (r.fixed) { code.value = r.output; store.set('criathar-code', r.output); }
-      run(false);
-      say(status, (r.fixed ? 'Fixes applied. ' + (moved ? plural(moved, 'number') + ' moved into named constants. ' : '') + cspNote(r) : 'No automatic fixes were available. ') + summaryText());
+      markStale();
+      say(status, (r.fixed ? 'Fixes applied. ' + (moved ? plural(moved, 'number') + ' moved into named constants. ' : '') + cspNote(r) + 'Press Lint to check the result.' : 'No automatic fixes were available.'));
     } catch (e) { fail(error, 'ESLint stopped: ' + e.message); }
   });
   /* Download fixed code: same fixes as "Apply fixes", but the code box is left untouched. */
@@ -1829,7 +2111,7 @@ function makeParser(acorn) {
     const url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
     const a = document.createElement('a');
     a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setTimeout(() => URL.revokeObjectURL(url), REVOKE_DELAY_MS);
   };
   $('download').addEventListener('click', async () => {
     clear(error);
@@ -1841,10 +2123,10 @@ function makeParser(acorn) {
     } catch (e) { fail(error, 'ESLint stopped: ' + e.message); }
   });
   /* Copy buttons: "Copy all results" and one "Copy as text" per card, all as Markdown text. */
-  const tick = (s) => '`' + s + '`';
+  const tick = (text) => '`' + text + '`';
   function buildReports() {
     const c = counts();
-    const lines = last.map((m) => '- ' + tick(reportName() + ':' + m.line + ':' + m.column) + ' ' + (m.severity === 2 ? 'Error' : 'Warning') + ': ' + m.message + (m.ruleId ? ' (' + m.ruleId + ')' : m.fatal ? ' (parsing error)' : ''));
+    const lines = last.map((m) => '- ' + tick(reportName() + ':' + m.line + ':' + m.column) + ' ' + (m.severity === SEVERITY_ERROR ? 'Error' : 'Warning') + ': ' + m.message + (m.ruleId ? ' (' + m.ruleId + ')' : m.fatal ? ' (parsing error)' : ''));
     const summary = ['## Summary', '- Errors: ' + c.errors, '- Warnings: ' + c.warnings, '- Can be fixed automatically: ' + c.fixable, '- ' + summaryText()].join('\n');
     const problems = '## Problems (' + last.length + ')\n' + (isHtml() ? 'Found by ESLint. Markup is read by html-eslint and inline scripts by acorn.' : 'Found by ESLint with acorn as the parser.') + '\n' + (lines.length ? lines.join('\n') : '- None');
     const header = ['# Criathar results', [
@@ -1857,13 +2139,14 @@ function makeParser(acorn) {
     ].join('\n')].join('\n\n');
     return { summary, problems, all: [header, summary, problems].join('\n\n') };
   }
-  $('results').addEventListener('click', async (e) => {
+  $('v-results').addEventListener('click', async (e) => {
     const btn = e.target.closest('button[data-copy]'); if (!btn) {return;}
     clear($('copy-status'), $('copy-error'));
+    if (!ran) { say($('copy-status'), 'Press Lint first, so there are results to copy.'); return; }
     const ok = await copyText(buildReports()[btn.dataset.copy]);
     if (!ok) { fail($('copy-error'), 'Copy failed. Select the text and copy it by hand.'); return; }
     btn.focus();
-    setTimeout(() => say($('copy-status'), 'Copied ' + btn.dataset.label + '.'), 100);
+    setTimeout(() => say($('copy-status'), 'Copied ' + btn.dataset.label + '.'), COPY_ANNOUNCE_MS);
   });
   /* Read a file as text. Blob.text() is missing in some mobile browsers, so fall back to FileReader. */
   const readText = (f) => (typeof f.text === 'function' ? f.text() : new Promise((resolve, reject) => {
@@ -1879,9 +2162,8 @@ function makeParser(acorn) {
       code.value = await readText(f);
       source = f.name;
       store.set('criathar-code', code.value);
-      run(true);
-      say(status, f.name + ' opened. ' + summaryText());
-      focusHeading($('results-heading'));
+      markStale();
+      say(status, f.name + ' opened. Press Lint to check it.');
     } catch { fail(error, 'The file ' + f.name + ' could not be read.'); }
   }
   $('file').addEventListener('change', async (e) => {
@@ -1896,7 +2178,7 @@ function makeParser(acorn) {
 
   code.value = store.get('criathar-code', SAMPLE);
   renderRules();
-  run(false);
+  initViews({ code: 'Code', results: 'Results', settings: 'Settings', about: 'About' }, () => 'code', 'Criathar');
 })();
         </script>
     </body>
